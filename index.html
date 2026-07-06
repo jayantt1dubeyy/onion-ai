@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onion AI</title>
+  <style>
+    body { background: #0f0f0f; color: #eee; font-family: sans-serif; padding: 20px; }
+    textarea, button { width: 100%; padding: 12px; border-radius: 8px; font-size: 16px; }
+    button { background: #4f46e5; color: white; border: none; margin-top: 10px; cursor: pointer; }
+    .card { background: #1a1a1a; padding: 15px; border-radius: 10px; margin: 15px 0; border-left: 4px solid #4f46e5; }
+    .loading { opacity: 0.7; }
+    #status { font-size: 14px; margin-top: 10px; color: #aaa; }
+  </style>
+</head>
+<body>
+  <h1>Onion AI</h1>
+  <textarea id="question" placeholder="Enter your strategic question..." rows="2"></textarea>
+  <button onclick="run()">🔮 Forecast</button>
+  <div id="status"></div>
+  <div id="output"></div>
+
+  <script type="module">
+    import * as ort from 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/esm/ort.min.js';
+    import { encode, decode } from 'https://cdn.jsdelivr.net/npm/gpt-3-encoder@1.1.4/index.js';
+
+    let session = null;
+    const status = document.getElementById('status');
+
+    async function init() {
+      status.innerText = 'Loading model (this might take a minute)...';
+      session = await ort.InferenceSession.create('./onion_model_int8.onnx', {
+        executionProviders: ['wasm'],
+      });
+      status.innerText = 'Ready!';
+    }
+
+    function parseTimelines(raw) {
+      const regex = /TIMELINE (\w):/g;
+      const timelines = [];
+      const matches = [...raw.matchAll(regex)];
+      for (let i = 0; i < matches.length; i++) {
+        const title = `TIMELINE ${matches[i][1]}`;
+        const start = matches[i].index;
+        const end = i + 1 < matches.length ? matches[i + 1].index : raw.length;
+        const content = raw.slice(start, end).trim();
+        timelines.push({ title, content });
+      }
+      return timelines;
+    }
+
+    async function generate(prompt, maxTokens = 200, temperature = 0.8) {
+      let context = encode(prompt);
+      context = context.slice(-128);
+
+      for (let i = 0; i < maxTokens; i++) {
+        const inputTensor = new ort.Tensor('int64', BigInt64Array.from(context.map(BigInt)), [1, context.length]);
+        const outputs = await session.run({ input_ids: inputTensor });
+        const logits = outputs.logits.data;
+        const vocabSize = 50257;
+        const lastLogits = logits.slice((context.length - 1) * vocabSize, context.length * vocabSize);
+
+        const topk = 50;
+        const indexed = Array.from(lastLogits, (v, i) => ({ value: v / temperature, index: i }));
+        indexed.sort((a, b) => b.value - a.value);
+        const top = indexed.slice(0, topk);
+        const maxVal = Math.max(...top.map(t => t.value));
+        const probs = top.map(t => Math.exp(t.value - maxVal));
+        const sum = probs.reduce((a, b) => a + b, 0);
+        const normProbs = probs.map(p => p / sum);
+
+        let cum = 0;
+        const rand = Math.random();
+        let nextToken = top[top.length - 1].index;
+        for (let j = 0; j < top.length; j++) {
+          cum += normProbs[j];
+          if (rand <= cum) {
+            nextToken = top[j].index;
+            break;
+          }
+        }
+        context.push(nextToken);
+      }
+      return decode(context.slice(-maxTokens));
+    }
+
+    window.run = async () => {
+      const question = document.getElementById('question').value;
+      if (!question) return;
+      const outputDiv = document.getElementById('output');
+      outputDiv.innerHTML = '<div class="loading">Generating...</div>';
+      try {
+        const raw = await generate(`Question: ${question}\n\n`);
+        const timelines = parseTimelines(raw);
+        if (timelines.length === 0) {
+          outputDiv.innerHTML = '<p>No timeline detected. Raw output:</p><pre>' + raw + '</pre>';
+          return;
+        }
+        let html = '';
+        timelines.forEach(t => {
+          html += `<div class="card"><strong>${t.title}</strong><pre>${t.content}</pre></div>`;
+        });
+        outputDiv.innerHTML = html;
+      } catch (e) {
+        outputDiv.innerHTML = `<p>Error: ${e.message}</p>`;
+      }
+    };
+
+    init();
+  </script>
+</body>
+</html>
