@@ -70,3 +70,13 @@ Run `python -m openmythos.benchmark --preset mini_60m --mode params` for the exa
 - All randomness is seeded (`TrainConfig.seed`); dataloader shuffling uses a seeded generator.
 - Checkpoints store model, optimizer, scaler, and RNG states — resume with `--resume checkpoints/latest.pt`.
 - Every run appends JSONL metrics to `checkpoints/loss.jsonl`.
+
+## Roadmap: scaling to 3B
+
+The T4-scale pilots (`tiny_debug`, `mini_60m`) validate the recurrent-depth idea. The next milestone is a **3B-parameter OpenMythos** that beats the best open 3B models (Llama 3.2 3B, Qwen3, Phi-4-mini, Gemma, SmolLM2).
+
+- `research/` — landscape survey: best 2–4B models, their architectures, training data and recipes, eval scores; what we borrow and what we change
+- `configs/` — model configs (`mythos_3b.py`)
+- `training/` — 3B pretraining code (FSDP + AdamW, FineWeb-Edu class data)
+
+Architecture for 3B: [kyegomez/OpenMythos](https://github.com/kyegomez/OpenMythos) variant — dim 3072, MLA attention, 64 experts (MoE), 16 loop iterations, 4k context. See `research/` for the full plan.
