@@ -71,12 +71,19 @@ Run `python -m openmythos.benchmark --preset mini_60m --mode params` for the exa
 - Checkpoints store model, optimizer, scaler, and RNG states — resume with `--resume checkpoints/latest.pt`.
 - Every run appends JSONL metrics to `checkpoints/loss.jsonl`.
 
-## Roadmap: scaling to 3B
+## Roadmap: 1B — beat them all
 
-The T4-scale pilots (`tiny_debug`, `mini_60m`) validate the recurrent-depth idea. The next milestone is a **3B-parameter OpenMythos** that beats the best open 3B models (Llama 3.2 3B, Qwen3, Phi-4-mini, Gemma, SmolLM2).
+The T4-scale pilots validate the recurrent-depth idea. The milestone is a
+**1B-parameter OpenMythos that beats every open 1B model**: TinyLlama-1.1B,
+SmolLM2-1.7B, OLMo-2-1B, Llama-3.2-1B, Qwen2.5-1.5B.
 
-- `research/` — landscape survey: best 2–4B models, their architectures, training data and recipes, eval scores; what we borrow and what we change
-- `configs/` — model configs (`mythos_3b.py`)
-- `training/` — 3B pretraining code (FSDP + AdamW, FineWeb-Edu class data)
+- `research/1b_battle_plan.md` — the battle plan: targets, data mix, recipe, compute stages
+- `research/3b_landscape.md` — competitive survey (12 models) behind the plan
+- `configs/mythos_1b.py` — 1B config (1.06B params, verified): GQA, 64 experts / 8 active,
+  64K custom BPE, loop-depth curriculum
+- `patches/` — code modifications vs upstream: QK-Norm, sliding-window interleave
+  (embeddings already tied upstream)
+- `training/` — 1B training code (FSDP + AdamW, staged data)
 
-Architecture for 3B: [kyegomez/OpenMythos](https://github.com/kyegomez/OpenMythos) variant — dim 3072, MLA attention, 64 experts (MoE), 16 loop iterations, 4k context. See `research/` for the full plan.
+The killer feature: **test-time depth extrapolation** — train with n_loops ≤ 8,
+sweep 4→16 at eval, watch reasoning scores climb. No dense 1B model can do this.
