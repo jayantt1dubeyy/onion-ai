@@ -78,6 +78,7 @@ The T4-scale pilots validate the recurrent-depth idea. The milestone is a
 SmolLM2-1.7B, OLMo-2-1B, Llama-3.2-1B, Qwen2.5-1.5B.
 
 - `research/1b_battle_plan.md` — the battle plan: targets, data mix, recipe, compute stages
+- `research/44m_experiment_report.md` — Stage-0 evidence: the 44M TinyStories run vs its matched-parameter baseline (loss, CIs, compute, limitations)
 - `research/3b_landscape.md` — competitive survey (12 models) behind the plan
 - `configs/mythos_1b.py` — 1B config (1.06B params, verified): GQA, 64 experts / 8 active,
   64K custom BPE, loop-depth curriculum
@@ -87,3 +88,9 @@ SmolLM2-1.7B, OLMo-2-1B, Llama-3.2-1B, Qwen2.5-1.5B.
 
 The killer feature: **test-time depth extrapolation** — train with n_loops ≤ 8,
 sweep 4→16 at eval, watch reasoning scores climb. No dense 1B model can do this.
+
+> Status note (Oct 2026): the 44M Stage-0 run does **not** show extrapolation
+> gains on TinyStories loss — eval depth 8 is significantly worse than the
+> trained depth 4 (paired 95% CI [+0.101, +0.110]). See
+> `research/44m_experiment_report.md` §4. The extrapolation story now rests
+> on the 1B loop-curriculum run, not on this result.
