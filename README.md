@@ -2,6 +2,8 @@
 
 A miniature recurrent language model designed to train on a **single NVIDIA T4 (16 GB)** in Google Colab. Rebuilt from scratch with full verification — every module is shape-checked and the whole pipeline runs end to end.
 
+> 🐼 New here? Beginner explainers: [44M run](research/44m-explained-for-beginners.md) · [MiniMythos 125M](research/minimythos-125m-explained-for-beginners.md) · [1B roadmap](research/1b-roadmap-explained-for-beginners.md).
+
 ## Architecture
 
 **Prelude → Recurrent Block × N → Coda**, with the block's weights *shared* across iterations:
