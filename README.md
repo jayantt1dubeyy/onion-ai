@@ -1,3 +1,7 @@
+![OpenMythos header](https://capsule-render.vercel.app/api?type=waving&color=gradient&height=180&section=header&text=OpenMythos&fontSize=42&animation=fadeIn)
+
+![Typing](https://readme-typing-svg.demolab.com?font=Fira+Code&pause=1000&color=F472B6&width=650&lines=A+recurrent+language+model.;Trains+on+a+single+T4.;Prelude+%E2%86%92+Block+%C3%97+N+%E2%86%92+Coda.)
+
 # OpenMythos
 
 A miniature recurrent language model designed to train on a **single NVIDIA T4 (16 GB)** in Google Colab. Rebuilt from scratch with full verification — every module is shape-checked and the whole pipeline runs end to end.
@@ -100,3 +104,31 @@ sweep 4→16 at eval, watch reasoning scores climb. No dense 1B model can do thi
 > 125M second data point points the other way on HellaSwag accuracy — see
 > `research/minimythos_125m_addendum.md` — so extrapolation currently looks
 > scale- and task-dependent, not settled either way.
+
+---
+
+## 🗺️ Project map
+
+One recurrent block, shared across iterations — depth from refinement, not width.
+
+```mermaid
+flowchart LR
+    P["Prelude — byte embeddings, vocab 260"] --> B["Recurrent block × N (shared weights)"]
+    B --> C["Coda — RMSNorm + LM head"]
+    B --> GQA["grouped-query attention"]
+    B --> FFN["SwiGLU FFN or sparse MoE"]
+    B --> ROPE["RoPE positions, pre-norm residuals"]
+    B --> BPTT["truncated BPTT — grads flow ≤ grad_recurrence_steps"]
+    B --> KV["per-iteration KV caches"]
+```
+
+## 📊 At a glance
+
+| Track | Status |
+|---|---|
+| Tiny / smoke | ~1M params, CPU, seconds |
+| 44M run | Stage 0 proof run |
+| MiniMythos 125M | Technical report + slides |
+| 1B roadmap | Config verified at 1.06B params (dim 2048, GQA 16/4, 64 experts / 8 active, 64K BPE, 4K context, 16 loops) — roadmap, not a finished training run |
+| Hardware target | A single NVIDIA T4 (16 GB) in Colab |
+| Beginner explainers | 44M run · MiniMythos 125M · 1B roadmap (see research/) |
